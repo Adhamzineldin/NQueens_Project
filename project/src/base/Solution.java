@@ -1,8 +1,8 @@
 package base;
 
 public class Solution {
-    Board solved_board;
-    int thread_id;
+    public Board solved_board;
+    public int thread_id;
     
     public Solution(Board board, int id) {
         this.solved_board = board;

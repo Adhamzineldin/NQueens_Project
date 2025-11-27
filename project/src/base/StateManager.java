@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class StateManager {
-    HashMap<Integer, StepBoard> current_states = new HashMap<>(); // thread_id -> StepBoard
-    HashMap<Integer, ArrayList<Solution>> solutions = new HashMap<>();
+    public HashMap<Integer, StepBoard> current_states = new HashMap<>(); // thread_id -> StepBoard
+    public HashMap<Integer, ArrayList<Solution>> solutions = new HashMap<>();
     
     public StateManager() {
         
