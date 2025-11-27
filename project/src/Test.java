@@ -1,5 +1,6 @@
 import base.Board;
 import base.NQueenSolver;
+import base.StateManager;
 import base.ThreadManager;
 
 public class Test {
@@ -15,7 +16,17 @@ public class Test {
 //        System.out.println("\nSolutions found for board: " + solver.getSolutions().size());
 
         ThreadManager tm = new ThreadManager();
-        tm.startSolving(16, 8,  null);
+        StateManager sm = new StateManager();
+        
+        
+        try {
+            tm.startSolving(4, 4,  sm);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Caught expected exception: " + e.getMessage());
+        }
+   
+      
+        
         
         
         

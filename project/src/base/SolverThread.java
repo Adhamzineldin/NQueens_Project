@@ -8,17 +8,19 @@ public class SolverThread extends Thread {
     private final int startCol;
     private final int endCol;
     private final int n;
+    private final int thread_id;
 
     // Updated constructor to handle a range of columns
-    public SolverThread(int n, int startCol, int endCol, StepListener listener, Object lock) {
+    public SolverThread(int thread_id, int n, int startCol, int endCol, StateManager manager, Object lock) {
         this.startCol = startCol;
         this.endCol = endCol;
         this.lock = lock;
         this.n = n;
+        this.thread_id = thread_id;
 
         Board board = new Board(n);
         this.solver = new NQueenSolver(board);
-        solver.setListener(listener);
+        solver.setManager(manager);
     }
 
     @Override
@@ -27,18 +29,9 @@ public class SolverThread extends Thread {
             if (stop) break;
 
             Board board = new Board(n, col); // Place first queen at (0, col)
-            NQueenSolver localSolver = new NQueenSolver(board);
-//            localSolver.setListener(solver.getListener());
+            NQueenSolver localSolver = new NQueenSolver(board, thread_id);
+            localSolver.setManager(solver.getManager());
             localSolver.solveFromRow(1);
-
-            // Lock when printing solutions to avoid interleaving
-            synchronized (lock) {
-                for (var solution : localSolver.getSolutions()) {
-                    if (stop) break;
-                    solution.printSolution();
-                    System.out.println();
-                }
-            }
         }
     }
 
