@@ -13,7 +13,8 @@ public class StateManager {
     
     public synchronized void updateState(int thread_id, StepBoard step_board) {
         current_states.put(thread_id, step_board);
-        step_board.printStepBoard();
+        // Disabled for performance - uncomment to debug
+        // step_board.printStepBoard();
     }
     
     public synchronized void addSolution(int thread_id, Solution solution) {
@@ -21,7 +22,10 @@ public class StateManager {
             solutions.put(thread_id, new ArrayList<Solution>());
         }
         solutions.get(thread_id).add(solution);
-//        solution.printSolution();
+        System.out.println("Thread " + thread_id + " found solution #" + solutions.get(thread_id).size() + 
+                          " for " + solution.solved_board.getN() + "x" + solution.solved_board.getN() + " board");
+        // Disabled printing full board - uncomment to debug
+        // solution.printSolution();
     }
     
     public ArrayList<Solution> getSolutions(int thread_id) {

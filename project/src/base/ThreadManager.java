@@ -34,6 +34,8 @@ public class ThreadManager {
             int colsForThisThread = colsPerThread + (i < remainingCols ? 1 : 0);
             int endCol = startCol + colsForThisThread;
 
+            System.out.println("Thread " + i + " assigned columns: " + startCol + " to " + (endCol - 1));
+
             SolverThread t = new SolverThread(i, n, startCol, endCol, manager, lock);
             threads.add(t);
             t.start();
@@ -44,7 +46,39 @@ public class ThreadManager {
 
 
     public void stopAll() {
-        for (SolverThread t : threads) t.requestStop();
+        for (SolverThread t : threads) {
+            t.requestStop();
+        }
+        
+        // Wait for threads to finish (with timeout)
+        for (SolverThread t : threads) {
+            try {
+                t.join(1000); // Wait up to 1 second per thread
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+    
+    public void waitForCompletion() {
+        // Wait for all threads to complete naturally
+        for (SolverThread t : threads) {
+            try {
+                t.join(); // Wait indefinitely for thread to complete
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+    }
+    
+    public boolean isRunning() {
+        for (SolverThread t : threads) {
+            if (t.isAlive()) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

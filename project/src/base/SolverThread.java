@@ -26,14 +26,20 @@ public class SolverThread extends Thread {
     @Override
     public void run() {
         for (int col = startCol; col < endCol; col++) {
-            if (stop) break;
+            if (stop || Thread.currentThread().isInterrupted()) break;
 
             Board board = new Board(n, col); // Place first queen at (0, col)
             NQueenSolver localSolver = new NQueenSolver(board, thread_id);
             localSolver.setManager(solver.getManager());
             localSolver.solveFromRow(1);
+            
+            // Check stop flag between columns
+            if (stop || Thread.currentThread().isInterrupted()) break;
         }
     }
 
-    public void requestStop() { stop = true; }
+    public void requestStop() { 
+        stop = true;
+        this.interrupt(); // Also interrupt the thread
+    }
 }
