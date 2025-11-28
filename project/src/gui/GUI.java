@@ -5,6 +5,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
+import java.util.concurrent.Semaphore; // Import for semaphore synchronization
 import javax.swing.border.*;
 
 /**
@@ -29,6 +30,9 @@ public class GUI extends JFrame {
     private volatile boolean stopRequested = false; // Flag to signal threads to stop
     private int delay = 10; // Milliseconds delay for both algorithm steps and UI updates (minimum 1ms)
     private JSpinner delaySpinner; // Spinner control for adjusting animation speed
+    
+    // Semaphore for controlling concurrent access to solving operation
+    private final Semaphore solvingSemaphore = new Semaphore(1); // Only one solving operation at a time
     
     // Color scheme constants for consistent UI appearance
     private static final Color BG_COLOR = new Color(20, 25, 35); // Dark background color
@@ -297,9 +301,19 @@ public class GUI extends JFrame {
     /**
      * Starts the N-Queens solving process with multiple threads
      * Initializes all boards, starts worker threads, and begins UI updates
+     * Uses semaphore to ensure only one solving operation runs at a time
      */
     private void startSolving() {
-        if (isRunning) return; // Prevent starting if already running
+        // Try to acquire semaphore permit - if not available, another solve is running
+        if (!solvingSemaphore.tryAcquire()) {
+            System.out.println("⚠ Solving operation already in progress. Please wait...");
+            return; // Exit if we can't get the permit
+        }
+        
+        if (isRunning) {
+            solvingSemaphore.release(); // Release permit before returning
+            return; // Prevent starting if already running
+        }
         
         isRunning = true; // Set running flag to true
         stopRequested = false; // Clear stop request flag
@@ -345,28 +359,34 @@ public class GUI extends JFrame {
         
         // Start solving in background thread to avoid blocking UI
         new Thread(() -> { // Create and start background thread
-            threadManager.startSolving(boardSize, threadsToUse, stateManager); // Start all worker threads solving
-            
-            // Wait for all threads to complete their work
-            threadManager.waitForCompletion(); // Block until all threads finish
-            
-            // Auto-stop when complete (update UI on Swing thread)
-            SwingUtilities.invokeLater(() -> { // Run on UI thread
-                if (isRunning && !stopRequested) { // Only if still running and not manually stopped
-                    // Count total solutions found by all threads
-                    int totalSolutions = 0; // Initialize counter
-                    for (ArrayList<Solution> sols : stateManager.solutions.values()) { // For each thread's solutions
-                        if (sols != null) totalSolutions += sols.size(); // Add solution count
+            try {
+                threadManager.startSolving(boardSize, threadsToUse, stateManager); // Start all worker threads solving
+                
+                // Wait for all threads to complete their work
+                threadManager.waitForCompletion(); // Block until all threads finish
+                
+                // Auto-stop when complete (update UI on Swing thread)
+                SwingUtilities.invokeLater(() -> { // Run on UI thread
+                    if (isRunning && !stopRequested) { // Only if still running and not manually stopped
+                        // Count total solutions found by all threads
+                        int totalSolutions = 0; // Initialize counter
+                        for (ArrayList<Solution> sols : stateManager.solutions.values()) { // For each thread's solutions
+                            if (sols != null) totalSolutions += sols.size(); // Add solution count
+                        }
+                        
+                        // Print completion information to console
+                        System.out.println("==========================================="); // Separator
+                        System.out.println("✓ All threads completed successfully!"); // Success message
+                        System.out.println("Total solutions found: " + totalSolutions); // Display total count
+                        System.out.println("==========================================="); // Separator
+                        stopSolving(true); // Auto-complete stop (pass true to indicate auto-completion)
                     }
-                    
-                    // Print completion information to console
-                    System.out.println("==========================================="); // Separator
-                    System.out.println("✓ All threads completed successfully!"); // Success message
-                    System.out.println("Total solutions found: " + totalSolutions); // Display total count
-                    System.out.println("==========================================="); // Separator
-                    stopSolving(true); // Auto-complete stop (pass true to indicate auto-completion)
-                }
-            });
+                });
+            } finally {
+                // Always release semaphore when solving completes (success or failure)
+                solvingSemaphore.release(); // Release the semaphore permit
+                System.out.println("🔓 Semaphore released - ready for next solve operation");
+            }
         }).start(); // Start the background thread
         
         // Start UI update timer to refresh display periodically
@@ -406,6 +426,10 @@ public class GUI extends JFrame {
             threadManager.stopAll(); // Stop all worker threads
             System.out.println("✓ All threads stopped successfully."); // Success message
             System.out.println("==========================================="); // Separator
+            
+            // Release semaphore when manually stopped (auto-complete releases in finally block)
+            solvingSemaphore.release(); // Release the semaphore permit
+            System.out.println("🔓 Semaphore released - ready for next solve operation");
         }
         
         // Stop UI update timer
