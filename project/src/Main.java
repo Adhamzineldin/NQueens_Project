@@ -1,22 +1,30 @@
 import gui.GUI;
 
-import java.io.File;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileLock;
+import java.io.IOException;
+import java.net.ServerSocket;
 
 public class Main {
-    public static void main(String[] args) throws Exception {
-        RandomAccessFile file = new RandomAccessFile(new File("app.lock"), "rw");
-        FileLock lock = file.getChannel().tryLock();
-        if (lock == null) {
-            System.out.println("Another instance is running!");
+    private static final int PORT = 65432;
+
+    public static void main(String[] args) {
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            System.out.println("Application started. No other instance detected.");
+
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                new GUI().setVisible(true);
+            });
+            
+            while (true) {
+                try {
+                    serverSocket.accept();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        } catch (IOException e) {
+            System.out.println("Another instance is already running!");
             System.exit(0);
         }
-
-        // Run your GUI
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            new GUI().setVisible(true);
-        });
-        
     }
 }
